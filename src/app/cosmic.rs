@@ -177,6 +177,12 @@ where
             })
             .map(super::Message::Cosmic),
             window_events.map(super::Message::Cosmic),
+            #[cfg(feature = "zbus")]
+            self.app
+                .core()
+                .single_instance
+                .then(|| super::single_instance_subscription::<T>())
+                .map_or_else(Subscription::none, |s| s.map(super::Message::App)),
         ])
     }
 
