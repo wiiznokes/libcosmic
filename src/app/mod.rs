@@ -38,7 +38,7 @@ pub mod message {
 
 use std::any::TypeId;
 use std::collections::HashMap;
-use std::env::args;
+use std::str::FromStr;
 
 pub use self::command::Command;
 pub use self::core::Core;
@@ -124,22 +124,22 @@ pub fn run<App: Application>(settings: Settings, flags: App::Flags) -> iced::Res
 }
 #[cfg(feature = "zbus")]
 #[derive(Debug, Clone)]
-pub struct DbusActivationMessage {
+pub struct DbusActivationMessage<Action = String, Args = Vec<String>> {
     pub activation_token: Option<String>,
     pub desktop_startup_id: Option<String>,
-    pub msg: DbusActivationDetails,
+    pub msg: DbusActivationDetails<Action, Args>,
 }
 
 #[derive(Debug, Clone)]
-pub enum DbusActivationDetails {
+pub enum DbusActivationDetails<Action = String, Args = Vec<String>> {
     Activate,
     Open {
         url: Vec<Url>,
     },
     /// action can be deserialized as Flags
     ActivateAction {
-        action: String,
-        args: Vec<String>,
+        action: Action,
+        args: Args,
     },
 }
 #[cfg(feature = "zbus")]
@@ -294,18 +294,19 @@ pub fn run_single_instance<App: Application>(
         .and_then(|b| b.build().ok())
         .is_some_and(|mut p| {
             match {
-                let mut args = HashMap::new();
+                let mut platform_data = HashMap::new();
                 if let Some(activation_token) = activation_token {
-                    args.insert("activation-token", activation_token.into());
+                    platform_data.insert("activation-token", activation_token.into());
                 }
                 if let Ok(startup_id) = std::env::var("DESKTOP_STARTUP_ID") {
-                    args.insert("desktop-startup-id", startup_id.into());
+                    platform_data.insert("desktop-startup-id", startup_id.into());
                 }
-                if let Ok(arg) = ron::to_string(&flags) {
-                    args.insert("args", arg.into());
+                if let Some(action) = flags.action() {
+                    let action = action.to_string();
+                    p.activate_action(&action, flags.args(), platform_data)
+                } else {
+                    p.activate(platform_data)
                 }
-
-                p.activate(args)
             } {
                 Ok(()) => {
                     tracing::info!("Successfully activated another instance");
@@ -325,6 +326,20 @@ pub fn run_single_instance<App: Application>(
     }
 }
 
+pub trait CosmicFlags {
+    type SubCommand: FromStr + ToString + std::fmt::Debug + Clone + Send + 'static;
+    type Args: TryFrom<Vec<String>> + Into<Vec<String>> + std::fmt::Debug + Clone + Send + 'static;
+    #[must_use]
+    fn action(&self) -> Option<&Self::SubCommand> {
+        None
+    }
+
+    #[must_use]
+    fn args(&self) -> Vec<&str> {
+        Vec::new()
+    }
+}
+
 /// An interactive cross-platform COSMIC application.
 #[allow(unused_variables)]
 pub trait Application
@@ -336,7 +351,7 @@ where
 
     #[cfg(feature = "zbus")]
     /// Argument received [`Application::new`].
-    type Flags: Clone + serde::Serialize + serde::Deserialize<'static>;
+    type Flags: Clone + CosmicFlags;
 
     #[cfg(not(feature = "zbus"))]
     /// Argument received [`Application::new`].
@@ -344,7 +359,15 @@ where
 
     #[cfg(feature = "zbus")]
     /// Message type specific to our app.
-    type Message: Clone + From<DbusActivationMessage> + std::fmt::Debug + Send + 'static;
+    type Message: Clone
+        + From<
+            DbusActivationMessage<
+                <Self::Flags as CosmicFlags>::SubCommand,
+                <Self::Flags as CosmicFlags>::Args,
+            >,
+        > + std::fmt::Debug
+        + Send
+        + 'static;
 
     #[cfg(not(feature = "zbus"))]
     /// Message type specific to our app.
@@ -599,10 +622,7 @@ impl<App: Application> ApplicationExt for App {
 }
 
 #[cfg(feature = "zbus")]
-fn single_instance_subscription<App: ApplicationExt>() -> Subscription<App::Message>
-where
-    App::Message: From<DbusActivationMessage> + 'static,
-{
+fn single_instance_subscription<App: ApplicationExt>() -> Subscription<App::Message> {
     use iced_futures::futures::StreamExt;
 
     iced::subscription::channel(
@@ -647,8 +667,42 @@ where
                         })
                     };
                     while let Some(msg) = rx.next().await {
-                        if let Err(err) = output.send(App::Message::from(msg)).await {
-                            tracing::error!(?err, "Failed to send message");
+                        if let Some(msg) = match msg.msg {
+                            DbusActivationDetails::Activate => Some(DbusActivationMessage {
+                                activation_token: msg.activation_token,
+                                desktop_startup_id: msg.desktop_startup_id,
+                                msg: DbusActivationDetails::Activate,
+                            }),
+                            DbusActivationDetails::Open { url } => Some(DbusActivationMessage {
+                                activation_token: msg.activation_token,
+                                desktop_startup_id: msg.desktop_startup_id,
+                                msg: DbusActivationDetails::Open { url },
+                            }),
+                            DbusActivationDetails::ActivateAction { action, args } => {
+                                if let (Ok(action), Ok(args)) = (
+                                    <App::Flags as CosmicFlags>::SubCommand::from_str(&action),
+                                    <App::Flags as CosmicFlags>::Args::try_from(args),
+                                ) {
+                                    Some(DbusActivationMessage {
+                                        activation_token: msg.activation_token,
+                                        desktop_startup_id: msg.desktop_startup_id,
+                                        msg: DbusActivationDetails::ActivateAction::<
+                                            <App::Flags as CosmicFlags>::SubCommand,
+                                            <App::Flags as CosmicFlags>::Args,
+                                        > {
+                                            action,
+                                            args,
+                                        },
+                                    })
+                                } else {
+                                    tracing::error!("Invalid action or args");
+                                    None
+                                }
+                            }
+                        } {
+                            if let Err(err) = output.send(App::Message::from(msg)).await {
+                                tracing::error!(?err, "Failed to send message");
+                            }
                         }
                     }
                 }
