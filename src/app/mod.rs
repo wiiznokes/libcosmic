@@ -361,7 +361,7 @@ where
     /// Message type specific to our app.
     type Message: Clone
         + From<
-            DbusActivationMessage<
+            DbusActivationDetails<
                 <Self::Flags as CosmicFlags>::SubCommand,
                 <Self::Flags as CosmicFlags>::Args,
             >,
@@ -622,7 +622,7 @@ impl<App: Application> ApplicationExt for App {
 }
 
 #[cfg(feature = "zbus")]
-fn single_instance_subscription<App: ApplicationExt>() -> Subscription<App::Message> {
+fn single_instance_subscription<App: ApplicationExt>() -> Subscription<Message<App::Message>> {
     use iced_futures::futures::StreamExt;
 
     iced::subscription::channel(
@@ -666,33 +666,33 @@ fn single_instance_subscription<App: ApplicationExt>() -> Subscription<App::Mess
                             })
                         })
                     };
-                    while let Some(msg) = rx.next().await {
+                    while let Some(mut msg) = rx.next().await {
+                        if let Some(token) = msg.activation_token.take() {
+                            if let Err(err) = output
+                                .send(Message::Cosmic(cosmic::Message::Activate(token)))
+                                .await
+                            {
+                                tracing::error!(?err, "Failed to send message");
+                            }
+                        }
                         if let Some(msg) = match msg.msg {
-                            DbusActivationDetails::Activate => Some(DbusActivationMessage {
-                                activation_token: msg.activation_token,
-                                desktop_startup_id: msg.desktop_startup_id,
-                                msg: DbusActivationDetails::Activate,
-                            }),
-                            DbusActivationDetails::Open { url } => Some(DbusActivationMessage {
-                                activation_token: msg.activation_token,
-                                desktop_startup_id: msg.desktop_startup_id,
-                                msg: DbusActivationDetails::Open { url },
-                            }),
+                            DbusActivationDetails::Activate => {
+                                Some(DbusActivationDetails::Activate)
+                            }
+                            DbusActivationDetails::Open { url } => {
+                                Some(DbusActivationDetails::Open { url })
+                            }
                             DbusActivationDetails::ActivateAction { action, args } => {
                                 if let (Ok(action), Ok(args)) = (
                                     <App::Flags as CosmicFlags>::SubCommand::from_str(&action),
                                     <App::Flags as CosmicFlags>::Args::try_from(args),
                                 ) {
-                                    Some(DbusActivationMessage {
-                                        activation_token: msg.activation_token,
-                                        desktop_startup_id: msg.desktop_startup_id,
-                                        msg: DbusActivationDetails::ActivateAction::<
-                                            <App::Flags as CosmicFlags>::SubCommand,
-                                            <App::Flags as CosmicFlags>::Args,
-                                        > {
-                                            action,
-                                            args,
-                                        },
+                                    Some(DbusActivationDetails::ActivateAction::<
+                                        <App::Flags as CosmicFlags>::SubCommand,
+                                        <App::Flags as CosmicFlags>::Args,
+                                    > {
+                                        action,
+                                        args,
                                     })
                                 } else {
                                     tracing::error!("Invalid action or args");
@@ -700,7 +700,9 @@ fn single_instance_subscription<App: ApplicationExt>() -> Subscription<App::Mess
                                 }
                             }
                         } {
-                            if let Err(err) = output.send(App::Message::from(msg)).await {
+                            if let Err(err) =
+                                output.send(Message::App(App::Message::from(msg))).await
+                            {
                                 tracing::error!(?err, "Failed to send message");
                             }
                         }
