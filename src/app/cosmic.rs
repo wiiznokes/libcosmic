@@ -365,6 +365,7 @@ impl<T: Application> Cosmic<T> {
                 }
             }
             Message::Activate(token) => {
+                #[cfg(feature = "wayland")]
                 return iced_sctk::commands::activation::activate(
                     iced::window::Id::default(),
                     token,

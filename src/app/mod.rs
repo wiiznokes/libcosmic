@@ -36,8 +36,6 @@ pub mod message {
     }
 }
 
-use std::any::TypeId;
-use std::collections::HashMap;
 use std::str::FromStr;
 
 pub use self::command::Command;
@@ -49,14 +47,16 @@ use crate::widget::{context_drawer, nav_bar};
 use apply::Apply;
 use iced::Subscription;
 use iced::{window, Application as IcedApplication};
-use iced_futures::futures::channel::mpsc::{Receiver, Sender};
-use iced_futures::futures::SinkExt;
 pub use message::Message;
 use url::Url;
-use zbus::zvariant::Value;
 #[cfg(feature = "zbus")]
-use zbus::{dbus_interface, dbus_proxy};
-
+use {
+    iced_futures::futures::channel::mpsc::{Receiver, Sender},
+    iced_futures::futures::SinkExt,
+    std::any::TypeId,
+    std::collections::HashMap,
+    zbus::{dbus_interface, dbus_proxy, zvariant::Value},
+};
 /// Launch a COSMIC application with the given [`Settings`].
 ///
 /// # Errors
