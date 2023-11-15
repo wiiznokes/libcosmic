@@ -1,3 +1,8 @@
+use std::os::{
+    fd::{FromRawFd, RawFd},
+    unix::net::UnixStream,
+};
+
 use super::subscription::{TokenRequest, TokenUpdate};
 use cctk::{
     sctk::{
@@ -96,7 +101,19 @@ pub(crate) fn wayland_handler(
     tx: UnboundedSender<TokenUpdate>,
     rx: calloop::channel::Channel<TokenRequest>,
 ) {
-    let conn = Connection::connect_to_env().unwrap();
+    let socket = std::env::var("X_PRIVILEGED_WAYLAND_SOCKET")
+        .ok()
+        .and_then(|fd| {
+            fd.parse::<RawFd>()
+                .ok()
+                .map(|fd| unsafe { UnixStream::from_raw_fd(fd) })
+        });
+
+    let conn = if let Some(socket) = socket {
+        Connection::from_socket(socket).unwrap()
+    } else {
+        Connection::connect_to_env().unwrap()
+    };
     let (globals, event_queue) = registry_queue_init(&conn).unwrap();
 
     let mut event_loop = calloop::EventLoop::<AppData>::try_new().unwrap();
