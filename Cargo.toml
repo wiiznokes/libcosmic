@@ -7,7 +7,6 @@ edition = "2021"
 name = "cosmic"
 
 [features]
-default = ["applet", "applet-token", "process"]
 # Accessibility support
 a11y = ["iced/a11y", "iced_accessibility"]
 # Builds support for animated images
