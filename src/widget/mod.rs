@@ -371,3 +371,6 @@ pub mod about;
 #[cfg(feature = "about")]
 #[doc(inline)]
 pub use about::about;
+
+pub mod command_palette;
+pub use command_palette::CommandPalette;

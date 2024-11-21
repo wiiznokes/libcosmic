@@ -55,7 +55,7 @@ pub use self::core::Core;
 pub use self::settings::Settings;
 use crate::prelude::*;
 use crate::theme::THEME;
-use crate::widget::{container, horizontal_space, id_container, menu, nav_bar, popover};
+use crate::widget::{container, horizontal_space, id_container, menu, nav_bar, popover, CommandPalette};
 use apply::Apply;
 use context_drawer::ContextDrawer;
 use iced::window;
@@ -463,6 +463,10 @@ where
 
     /// Displays a dialog in the center of the application window when `Some`.
     fn dialog(&self) -> Option<Element<Self::Message>> {
+        None
+    }
+
+    fn command_palette(&self) -> Option<CommandPalette> {
         None
     }
 
