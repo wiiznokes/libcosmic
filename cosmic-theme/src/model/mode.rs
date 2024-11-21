@@ -30,6 +30,7 @@ impl ThemeMode {
         config.get::<bool>("is_dark")
     }
 
+    /// Get the version of [`ThemeMode`]
     pub const fn version() -> u64 {
         Self::VERSION
     }

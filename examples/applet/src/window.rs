@@ -1,12 +1,10 @@
 use cosmic::app::Core;
-use cosmic::iced::application;
 use cosmic::iced::platform_specific::shell::commands::popup::{destroy_popup, get_popup};
 use cosmic::iced::window::Id;
 use cosmic::iced::{Length, Limits, Task};
 use cosmic::iced_runtime::core::window;
-use cosmic::theme::iced;
 use cosmic::widget::{list_column, settings, toggler};
-use cosmic::{Element, Theme};
+use cosmic::Element;
 
 const ID: &str = "com.system76.CosmicAppletExample";
 

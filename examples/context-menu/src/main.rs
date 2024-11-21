@@ -38,7 +38,6 @@ pub enum Message {
 pub struct App {
     core: Core,
     button_label: String,
-    show_context: bool,
     hide_content: bool,
 }
 
@@ -70,7 +69,6 @@ impl cosmic::Application for App {
             core,
             button_label: String::from("Right click me"),
             hide_content: false,
-            show_context: false,
         };
 
         app.set_header_title("COSMIC Context Menu Demo".into());
