@@ -466,7 +466,7 @@ where
         None
     }
 
-    fn command_palette(&self) -> Option<CommandPalette> {
+    fn command_palette(&self) -> Option<CommandPalette<Self::Message>> {
         None
     }
 
@@ -632,6 +632,11 @@ pub trait ApplicationExt: Application {
     /// Set the context drawer visibility.
     fn set_show_context(&mut self, show: bool) {
         self.core_mut().set_show_context(show);
+    }
+
+    /// Set the command palette visibility.
+    fn set_show_command_palette(&mut self, show: bool) {
+        self.core_mut().set_show_command_palette(show);
     }
 
     /// Set the header bar title.

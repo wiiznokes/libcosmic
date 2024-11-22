@@ -35,6 +35,7 @@ pub struct Window {
     pub show_context: bool,
     pub show_headerbar: bool,
     pub show_window_menu: bool,
+    pub show_command_palette: bool,
     pub show_close: bool,
     pub show_maximize: bool,
     pub show_minimize: bool,
@@ -138,6 +139,7 @@ impl Default for Core {
                 show_window_menu: false,
                 height: 0.,
                 width: 0.,
+                show_command_palette: false,
             },
             focused_window: None,
             #[cfg(feature = "applet")]
@@ -241,6 +243,10 @@ impl Core {
             self.nav_bar.toggled_condensed = false;
             self.is_condensed_update();
         }
+    }
+
+    pub fn set_show_command_palette(&mut self, show: bool) {
+        self.window.show_command_palette = show;
     }
 
     /// Whether the nav panel is visible or not
