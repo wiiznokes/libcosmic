@@ -3,7 +3,7 @@
 
 use std::{cell::OnceCell, collections::HashMap};
 
-use crate::widget::nav_bar;
+use crate::widget::{nav_bar, CommandPalette};
 use cosmic_config::CosmicConfigEntry;
 use cosmic_theme::ThemeMode;
 use iced::window;
@@ -96,6 +96,8 @@ pub struct Core {
     pub(crate) main_window: Option<window::Id>,
 
     pub(crate) exit_on_main_window_closed: bool,
+
+    pub command_palette: Option<CommandPalette<>>
 }
 
 impl Default for Core {

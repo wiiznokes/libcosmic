@@ -180,7 +180,7 @@ members = [
     "cosmic-config",
     "cosmic-config-derive",
     "cosmic-theme",
-    "examples/*",
+    "examples/command_palette",
 ]
 exclude = ["iced"]
 

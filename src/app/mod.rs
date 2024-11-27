@@ -466,10 +466,6 @@ where
         None
     }
 
-    fn command_palette(&self) -> Option<CommandPalette<Self::Message>> {
-        None
-    }
-
     /// Displays a footer at the bottom of the application window when `Some`.
     fn footer(&self) -> Option<Element<Self::Message>> {
         None

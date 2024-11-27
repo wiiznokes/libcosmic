@@ -1,10 +1,8 @@
-use iced::{Length, Size};
-use iced_core::{widget::tree::State, Widget};
-use iced_widget::mouse_area;
 
-use crate::{Element, Renderer, Theme};
 
-use super::text;
+use crate::Element;
+
+
 
 pub struct Command<Message> {
     name: String,
@@ -49,48 +47,26 @@ pub fn command_palette<Message>(
     }
 }
 
-impl<Message> Widget<Message, Theme, Renderer> for CommandPalette<Message> {
-    fn size(&self) -> Size<Length> {
-        Size::new(Length::Fill, Length::Fill)
-    }
+pub(crate) struct State {
+    search: String,
+    selected: (usize, Option<usize>),
+    filtered: Vec<usize>,
+    expanded: Vec<usize>,
+}
 
-    fn layout(
-        &self,
-        tree: &mut iced_core::widget::Tree,
-        renderer: &Renderer,
-        limits: &iced_core::layout::Limits,
-    ) -> iced_core::layout::Node {
-        println!("layout");
-        iced_core::layout::Node::default()
-    }
+impl State {
+    
+    fn down(&mut self) {
 
-    fn draw(
-        &self,
-        tree: &iced_core::widget::Tree,
-        renderer: &mut Renderer,
-        theme: &crate::Theme,
-        style: &iced_core::renderer::Style,
-        layout: iced_core::Layout<'_>,
-        cursor: iced_core::mouse::Cursor,
-        viewport: &iced::Rectangle,
-    ) {
-    }
-
-    fn state(&self) -> State {
-        State::new(CommandState::new())
+        match self.selected.1 {
+            Some(_) => todo!(),
+            None => todo!(),
+        }
     }
 }
 
-struct CommandState {}
 
-impl CommandState {
-    fn new() -> Self {
-        Self {}
-    }
-}
+pub(crate) fn command_palette_view<'a, Message>(state: &State, palette: CommandPalette<Message>) -> Element<'a, crate::app::Message<Message>> {
 
-impl<'a, Message> From<CommandPalette<Message>> for Element<'a, Message> {
-    fn from(value: CommandPalette<Message>) -> Self {
-        text("hello").into()
-    }
+    todo!()
 }
